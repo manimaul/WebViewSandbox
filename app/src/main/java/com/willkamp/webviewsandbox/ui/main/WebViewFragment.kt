@@ -8,16 +8,23 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebView
+import android.widget.FrameLayout
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.fragment.app.Fragment
 import com.willkamp.webviewsandbox.R
 
 class WebViewFragment : Fragment() {
 
-    lateinit var webView: WebView
+    private var webView: WebView? = null
+    private lateinit var layout: FrameLayout
+
+    init {
+        retainInstance = true
+    }
 
     private val activityResultContract =
         object : ActivityResultContract<WebChromeClient.FileChooserParams, Array<Uri>?>() {
@@ -61,43 +68,51 @@ class WebViewFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        webView = view.findViewById(R.id.webView)
-        webView.webChromeClient = webChromeClient
+        layout = view.findViewById(R.id.main)
+        if (webView == null) {
+            webView = WebView(view.context).also {
+                it.layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+            }
+        }
+        webView?.webChromeClient = webChromeClient
         if (savedInstanceState == null) {
-            webView.loadUrl("file:///android_asset/wv_data.html")
+            Log.d(TAG, "loading asset data url")
+            webView?.loadUrl("file:///android_asset/wv_data.html")
         }
+        layout.addView(webView, 0)
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        Log.d(TAG, "saving webview state")
-        webView.saveState(outState)
-    }
-
-    override fun onViewStateRestored(savedInstanceState: Bundle?) {
-        super.onViewStateRestored(savedInstanceState)
-        savedInstanceState?.let {
-            Log.d(TAG, "restoring webview state")
-            webView.restoreState(it)
-        }
-    }
+//    override fun onSaveInstanceState(outState: Bundle) {
+//        super.onSaveInstanceState(outState)
+//        Log.d(TAG, "saving webview state")
+//        webView?.saveState(outState)
+//    }
+//
+//    override fun onViewStateRestored(savedInstanceState: Bundle?) {
+//        super.onViewStateRestored(savedInstanceState)
+//        savedInstanceState?.let {
+//            Log.d(TAG, "restoring webview state")
+//            webView?.restoreState(it)
+//        }
+//    }
 
     override fun onPause() {
         super.onPause()
         Log.d(TAG, "pausing webview $webView")
-        webView.onPause()
+        webView?.onPause()
     }
 
     override fun onResume() {
         super.onResume()
         Log.d(TAG, "resuming webview $webView")
-        webView.onResume()
+        webView?.onResume()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        Log.d(TAG, "destroying webview $webView")
-        webView.destroy()
+        Log.d(TAG, "removing webview $webView")
+        layout.removeView(webView)
+//        webView?.destroy()
     }
 
     companion object {
